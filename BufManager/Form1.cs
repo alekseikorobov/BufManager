@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using BufManager.Util;
 using myConfig;
 
 namespace BufManager
@@ -19,7 +20,7 @@ namespace BufManager
         Config<MyData> config = new Config<MyData>("Config.xml");
         private string text, textRepl;
         private string[] error = new string[2];
-        private ToolStripItem tem1, tem2, tem3, tem0, tem4;
+        private ToolStripItem tem1, tem2, tem3, tem0, tem4, tem5;
         bool isItem = false;
         IntPtr nextClipboardViewer;
         int countBuff = 0;
@@ -29,14 +30,15 @@ namespace BufManager
         public Form1()
         {
             InitializeComponent();
+            tem5 = contextMenuStrip1.Items[contextMenuStrip1.Items.Count - 6];
             tem4 = contextMenuStrip1.Items[contextMenuStrip1.Items.Count - 5];
             tem0 = contextMenuStrip1.Items[contextMenuStrip1.Items.Count - 4];
             tem1 = contextMenuStrip1.Items[contextMenuStrip1.Items.Count - 3];
             tem2 = contextMenuStrip1.Items[contextMenuStrip1.Items.Count - 2];
             tem3 = contextMenuStrip1.Items[contextMenuStrip1.Items.Count - 1];
-            
+
             updateList();
-            ShowContextMenu();            
+            ShowContextMenu();
             nextClipboardViewer = (IntPtr)SetClipboardViewer((int)this.Handle);
             this.Resize += new System.EventHandler(this.Form1_Resize);
         }
@@ -91,7 +93,7 @@ namespace BufManager
                 if (image != null)
                 {
                     var n = DateTime.Now;
-                    string name = string.Format("im_{0}_{1}", n.ToString("yyyy_MM_dd_hh_mm_ss"),".jpg");
+                    string name = string.Format("im_{0}_{1}", n.ToString("yyyy_MM_dd_hh_mm_ss"), ".jpg");
                     string path = Path.Combine(config.config.PathImage, name);
                     image.Save(path);
                     return;
@@ -104,14 +106,15 @@ namespace BufManager
             try
             {
                 text = Clipboard.GetText();
+                if (string.IsNullOrWhiteSpace(text)) return;
             }
             catch
             {
                 return;
             }
-            
+
             int count = config.config.boff.Count > 0 ? config.config.boff.Max(c => c.id) + 1 : 0;
-            
+
             if (config.config.boff.Any(c => c.text == text))
             {
                 var r = config.config.boff.Single(c => c.text == text);
@@ -141,7 +144,7 @@ namespace BufManager
                 ToolStripMenuItem i = new ToolStripMenuItem();
                 i.Text = buff.ShowText;
                 i.Tag = buff.id;
-                i.Click += new EventHandler(i_Click);                
+                i.Click += new EventHandler(i_Click);
                 contextMenuStrip1.Items.Add(i);
             }
             contextMenuStrip1.Items.Add(tem3);
@@ -149,11 +152,13 @@ namespace BufManager
             contextMenuStrip1.Items.Add(tem1);
             contextMenuStrip1.Items.Add(tem0);
             contextMenuStrip1.Items.Add(tem4);
+            contextMenuStrip1.Items.Add(tem5);
         }
         void i_Click(object sender, EventArgs e)
         {
             ToolStripMenuItem item = (sender as ToolStripMenuItem);
-            if(item != null) {
+            if (item != null)
+            {
                 Clipboard.SetText(config.config.boff.Single(c => c.id == (int)item.Tag).text);
             }
         }
@@ -266,7 +271,7 @@ namespace BufManager
         private void уникальныеToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(text)) return;
-            List<string> textMessiv = text.Split(new string[] {Environment.NewLine },StringSplitOptions.RemoveEmptyEntries).ToList();
+            List<string> textMessiv = text.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).ToList();
             if (textMessiv.Count < 2) return;
 
             text = string.Join(Environment.NewLine, textMessiv.Distinct());
@@ -279,6 +284,47 @@ namespace BufManager
             bl.textList.Lines = config.config.boff.Select(c => c.text).ToArray();
             bl.Show();
         }
+
+        private void contextMenuStrip1_Opening(object sender, CancelEventArgs e)
+        {
+
+        }
+
+        private void сортироватьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            List<string> textMessiv = text.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            if (textMessiv.Count < 2) return;
+
+            text = string.Join(Environment.NewLine, textMessiv.OrderBy(c => c));
+            Clipboard.SetText(text);
+        }
+
+        private void сортироватьЧислаToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            List<string> textMessiv = text.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            if (textMessiv.Count < 2) return;
+
+            text = string.Join(Environment.NewLine, textMessiv.OrderBy(c =>
+            {
+                if (Regex.IsMatch(c, "^\\d+"))
+                    return Regex.Match(c, "^\\d+").Value;
+                return c;
+            }));
+            Clipboard.SetText(text);
+        }
+
+        private void убратьКонечныеПробелыToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            List<string> textMessiv = text.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            if (textMessiv.Count < 2) return;
+
+            text = string.Join(Environment.NewLine, textMessiv.Select(c => c.Trim()));
+            Clipboard.SetText(text);
+        }
+
 
         private string myReplace(string s)
         {
@@ -328,7 +374,7 @@ namespace BufManager
                 else
                 {
                     var s = myReplace(comboBox1.Text);
-                    var s1 = myReplace(comboBox2.Text);                    
+                    var s1 = myReplace(comboBox2.Text);
                     textBox2.Text = textBox3.Text.Replace(s, s1);
                     textRepl = text != null ? text.Replace(s, s1) : "";
                 }
@@ -345,7 +391,7 @@ namespace BufManager
             {
                 if (radioButton2.Checked)
                 {
-                    
+
                     Regex reg = new Regex(lastFind);
                     var m = reg.Replace(text, lastRep);
                     var m1 = reg.Replace(text ?? "", lastRep);
@@ -369,7 +415,7 @@ namespace BufManager
         }
         void SetText()
         {
-            
+
         }
         void updateList()
         {
@@ -385,109 +431,60 @@ namespace BufManager
                 comboBox2.Items.Add(r.ReplacePoleShwo);
             }
         }
-    }
 
-    public class MyDataFindReplace
-    {
-        private string _findPole;
-        public string FindPole
+
+
+        /*----start--------------------------------------*/
+
+        static bool Visible = true;
+        [DllImport("user32.dll")]
+        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+        [DllImport("user32.dll")]
+        static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        public static void SetConsoleWindowVisibility(bool visible)
         {
-            get { return _findPole; }
-            set
+            //IntPtr hWnd = FindWindow(null, Console.Title);
+            //if (hWnd != IntPtr.Zero)
+            //{
+            //    if (visible) ShowWindow(hWnd, 1); //1 = SW_SHOWNORMAL           
+            //    else ShowWindow(hWnd, 0); //0 = SW_HIDE
+            //}
+        }
+
+
+
+
+        private void скринToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Visible = false;
+            SetConsoleWindowVisibility(Visible);
+
+            //Application.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            //{
+            try
             {
-                //PrioritetFind++;
-                _findPole = value.IndexOf("///") != -1 ? value.Substring(0, value.IndexOf("///")) : value;
-                shwodataFind = value.IndexOf("///") != -1 ? value.Substring(value.IndexOf("///") + 2) : "";
+                using (var bmp = SnippingTool.Snip())
+                {
+                    //_main.Visibility = Visibility.Visible;
+                    if (bmp != null)
+                    {
+                        try
+                        {
+                            Clipboard.SetImage(bmp);
+                        }
+                        catch (Exception)
+                        {
+                            // ignore
+                        }
+                    }
+                }
             }
-        }
-        private string shwodataFind;
-        public string FindPoleShwo
-        {
-            get
+            finally
             {
-                return _findPole +
-                (!string.IsNullOrEmpty(shwodataFind) ? " (" + shwodataFind + ")" : "");
-            }
-        }
-
-        private string _replacePole;
-        public string ReplacePole
-        {
-            get { return _replacePole; }
-            set
-            {
-                //PrioritetReplace++;
-                _replacePole = value.IndexOf("///") != -1 ? value.Substring(0, value.IndexOf("///")) : value;
-                shwodataReplace = value.IndexOf("///") != -1 ? value.Substring(value.IndexOf("///") + 2) : "";
-            }
-        }
-        private string shwodataReplace;
-        public string ReplacePoleShwo
-        {
-            get
-            {
-                return _replacePole +
-                    (!string.IsNullOrEmpty(shwodataReplace) ? " (" + shwodataReplace + ")" : "");
-            }
-        }
-        public int PrioritetFind { get; set; }
-        public int PrioritetReplace { get; set; }
-    }
-    public class MyData
-    {
-        public MyData()
-        {
-            listData1 = new List<MyDataFindReplace>();
-            listData2 = new List<MyDataFindReplace>();
-            boff = new List<MyDataBuff>();
-            countHistory = 25;
-        }
-        public List<MyDataFindReplace> listData1 { get; set; }
-        public List<MyDataFindReplace> listData2 { get; set; }
-
-        public List<MyDataBuff> boff { get; set; }
-
-        public int countHistory { get; set; }
-
-
-        public string PathImage { get; set; }
-    }
-    public class MyDataBuff
-    {
-        string ReplaceText()
-        {
-            string s = _text.Replace("\r\n", " ").Replace("\r", " ").Replace("\n", " ").Replace("\t", " ");
-
-            return s.Length > 60 ? s.Substring(0, 60) + "..." : s;
-        }
-
-        public string _text;
-        public string text
-        {
-            get
-            {
-                return _text;
-            }
-            set
-            {
-                _text = value;
-
-                _showText = ReplaceText();
+                //_main.Visibility = Visibility.Visible;
             }
         }
 
-        public string _showText;
-        public string ShowText
-        {
-            get
-            {
-                return _showText;
-
-            }
-        }
-
-        public int id { get; set; }
-
-        public bool IsChecked { get; set; }
+        /*-----end---------------------------------------*/
     }
 }
