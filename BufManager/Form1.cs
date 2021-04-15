@@ -93,7 +93,7 @@ namespace BufManager
                 if (image != null)
                 {
                     var n = DateTime.Now;
-                    string name = string.Format("im_{0}_{1}", n.ToString("yyyy_MM_dd_hh_mm_ss"), ".jpg");
+                    string name = string.Format("im_{0}{1}", n.ToString("yyyyMMdd_HHmmss"), ".jpg");
                     string path = Path.Combine(config.config.PathImage, name);
                     image.Save(path);
                     return;
