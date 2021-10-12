@@ -58,12 +58,22 @@ namespace BufManager
         public static extern bool ChangeClipboardChain(IntPtr hWndRemove, IntPtr hWndNewNext);
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern int SendMessage(IntPtr hwnd, int wMsg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetForegroundWindow();
+        
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetActiveWindow();
+        [DllImport("USER32.DLL")]
+        private static extern int GetWindowTextLength(IntPtr hWnd);
+        [DllImport("USER32.DLL")]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+        // defined in winuser.h
+        const int WM_DRAWCLIPBOARD = 0x308;
+        const int WM_CHANGECBCHAIN = 0x030D;
         protected override void WndProc(ref System.Windows.Forms.Message m)
         {
-            // defined in winuser.h
-            const int WM_DRAWCLIPBOARD = 0x308;
-            const int WM_CHANGECBCHAIN = 0x030D;
-
             switch (m.Msg)
             {
                 case WM_DRAWCLIPBOARD:
@@ -92,10 +102,15 @@ namespace BufManager
                 Image image = Clipboard.GetImage();
                 if (image != null)
                 {
-                    var n = DateTime.Now;
-                    string name = string.Format("im_{0}{1}", n.ToString("yyyyMMdd_HHmmss"), ".jpg");
-                    string path = Path.Combine(config.config.PathImage, name);
-                    image.Save(path);
+                    string processName = GetActiveWindowName();
+                    string fileName = string.Format("im_{0}{1}", DateTime.Now.ToString("yyyyMMdd_HHmmss"), ".jpg");
+                    
+                    string dirFullName = Path.Combine(config.config.PathImage, MakeValidFileName(processName).Replace(" ","_"));
+                    
+                    Directory.CreateDirectory(dirFullName);
+
+                    string fullPath = Path.Combine(dirFullName, fileName);
+                    image.Save(fullPath);
                     return;
                 }
             }
@@ -136,6 +151,30 @@ namespace BufManager
             }
             ShowContextMenu();
         }
+
+        private string MakeValidFileName(string name)
+        {
+            string invalidChars = System.Text.RegularExpressions.Regex.Escape(
+                //new string(System.IO.Path.GetInvalidFileNameChars()) 
+                new string(System.IO.Path.GetInvalidPathChars())
+                );
+            string invalidRegStr = string.Format(@"([{0}]*\.+$)|([{0}]+)", invalidChars);
+
+            return System.Text.RegularExpressions.Regex.Replace(name, invalidRegStr, "_");
+        }
+
+        private string GetActiveWindowName()
+        {
+            var hWnd  = GetForegroundWindow();
+            int length = GetWindowTextLength(hWnd);
+            if (length == 0) return "";
+
+            StringBuilder builder = new StringBuilder(length);
+            GetWindowText(hWnd, builder, length + 1);
+
+            return builder.ToString();
+        }
+
         void ShowContextMenu()
         {
             contextMenuStrip1.Items.Clear();
