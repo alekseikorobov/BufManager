@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -452,6 +453,47 @@ namespace BufManager
                 error[1] = e.Message;
             }
         }
+
+        private void распознатьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var image = SnippingTool.Snip();
+
+            string tempFile = Path.GetTempFileName();
+
+            image.Save(tempFile);
+
+            var str  = GetTextFromImage(tempFile);
+
+            Clipboard.SetText(str);
+
+            File.Delete(tempFile);
+        }
+
+        public string GetTextFromImage(string pathImage)
+        {
+            string ex = "tesseract.exe";
+            string args = $"\"{pathImage}\" stdout";
+
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.CreateNoWindow = true;
+            startInfo.FileName = ex;
+            startInfo.Arguments = args;
+            Process process = new Process();
+            process.StartInfo = startInfo;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardInput = true;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.Start();
+            process.WaitForExit();
+            StringBuilder sb = new StringBuilder();
+            while (!process.StandardOutput.EndOfStream)
+            {
+                string line = process.StandardOutput.ReadLine();
+                sb.AppendLine(line);
+            }
+            return sb.ToString();
+        }
+
         void SetText()
         {
 
