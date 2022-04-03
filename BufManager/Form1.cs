@@ -18,10 +18,13 @@ namespace BufManager
     [DefaultEvent("ClipboardChanged")]
     public partial class Form1 : Form
     {
+
+        NLog.ILogger log = NLog.LogManager.GetLogger("Application");
+
         Config<MyData> config = new Config<MyData>("Config.xml");
         private string text, textRepl;
         private string[] error = new string[2];
-        private ToolStripItem tem1, tem2, tem3, tem0, tem4, tem5;
+        private ToolStripItem tem1, tem2, tem3, tem0, tem4, tem5, tem6;
         bool isItem = false;
         IntPtr nextClipboardViewer;
         int countBuff = 0;
@@ -30,7 +33,9 @@ namespace BufManager
 
         public Form1()
         {
+            log.Info("Start app");
             InitializeComponent();
+            tem6 = contextMenuStrip1.Items[contextMenuStrip1.Items.Count - 7];
             tem5 = contextMenuStrip1.Items[contextMenuStrip1.Items.Count - 6];
             tem4 = contextMenuStrip1.Items[contextMenuStrip1.Items.Count - 5];
             tem0 = contextMenuStrip1.Items[contextMenuStrip1.Items.Count - 4];
@@ -115,8 +120,10 @@ namespace BufManager
                     return;
                 }
             }
-            catch
+            catch(Exception ex)
             {
+                log.Error(ex);
+
                 return;
             }
             try
@@ -124,8 +131,10 @@ namespace BufManager
                 text = Clipboard.GetText();
                 if (string.IsNullOrWhiteSpace(text)) return;
             }
-            catch
+            catch (Exception ex)
             {
+                log.Error(ex);
+
                 return;
             }
 
@@ -193,6 +202,7 @@ namespace BufManager
             contextMenuStrip1.Items.Add(tem0);
             contextMenuStrip1.Items.Add(tem4);
             contextMenuStrip1.Items.Add(tem5);
+            contextMenuStrip1.Items.Add(tem6);
         }
         void i_Click(object sender, EventArgs e)
         {
@@ -273,6 +283,7 @@ namespace BufManager
         }
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            log.Info($"Form1_FormClosing isClosing={isClosing} WindowState={WindowState} notifyIcon1.Visible={notifyIcon1.Visible}");
             if (!isClosing)
             {
                 e.Cancel = true;
@@ -284,6 +295,7 @@ namespace BufManager
         }
         private void notifyIcon1_MouseDoubleClick_1(object sender, MouseEventArgs e)
         {
+            log.Info($"notifyIcon1_MouseDoubleClick_1 WindowState={WindowState}");
             this.Show();
             WindowState = FormWindowState.Normal;
         }
@@ -469,6 +481,11 @@ namespace BufManager
             File.Delete(tempFile);
         }
 
+        private void notifyIcon1_MouseClick(object sender, MouseEventArgs e)
+        {
+
+        }
+
         public string GetTextFromImage(string pathImage)
         {
             string ex = "tesseract.exe";
@@ -553,12 +570,17 @@ namespace BufManager
                         {
                             Clipboard.SetImage(bmp);
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
+                            log.Error(ex);
                             // ignore
                         }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex);
             }
             finally
             {
