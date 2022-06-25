@@ -44,13 +44,14 @@ namespace BufManager
             tem3 = contextMenuStrip1.Items[contextMenuStrip1.Items.Count - 1];
 
             updateList();
-            ShowContextMenu();
+            RebuildContextMenu();
             nextClipboardViewer = (IntPtr)SetClipboardViewer((int)this.Handle);
             this.Resize += new System.EventHandler(this.Form1_Resize);
         }
 
         private void Form1_Resize(object sender, EventArgs e)
         {
+            log.Info($"Form1_Resize WindowState={WindowState}");
             if (WindowState == FormWindowState.Minimized)
             {
                 Hide();
@@ -159,7 +160,7 @@ namespace BufManager
                     config.config.boff.RemoveAt(i);
                 }
             }
-            ShowContextMenu();
+            RebuildContextMenu();
         }
 
         private string MakeValidFileName(string name)
@@ -185,8 +186,10 @@ namespace BufManager
             return builder.ToString();
         }
 
-        void ShowContextMenu()
+        void RebuildContextMenu()
         {
+            log.Info($"RebuildContextMenu");
+
             contextMenuStrip1.Items.Clear();
             foreach (var buff in config.config.boff.OrderByDescending(c => c.id))
             {
@@ -287,17 +290,20 @@ namespace BufManager
             if (!isClosing)
             {
                 e.Cancel = true;
-                this.Hide();
                 WindowState = FormWindowState.Minimized;
                 notifyIcon1.Visible = true;
+                this.Hide();
             }
             //Application.Exit();
         }
         private void notifyIcon1_MouseDoubleClick_1(object sender, MouseEventArgs e)
         {
-            log.Info($"notifyIcon1_MouseDoubleClick_1 WindowState={WindowState}");
-            this.Show();
-            WindowState = FormWindowState.Normal;
+            if (e.Button == MouseButtons.Left)
+            {
+                log.Info($"notifyIcon1_MouseDoubleClick_1 WindowState={WindowState}");
+                this.Show();
+                WindowState = FormWindowState.Normal;
+            }
         }
         private void выходToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -309,7 +315,7 @@ namespace BufManager
         private void очиститьToolStripMenuItem_Click(object sender, EventArgs e)
         {
             config.config.boff.Clear();
-            ShowContextMenu();
+            RebuildContextMenu();
         }
         private void последняяЗаменаToolStripMenuItem_Click(object sender, EventArgs e)
         {
